@@ -73,15 +73,24 @@ def test_stuff():
   resp = zoobar.app(environ, startresp)
   if verbose:
     for x in resp:
+      print "-------------line--start-------------"
       print x
+      print "-------------line--end---------------"
 
   ## Exercise 6: your code here.
 
   ## Detect balance mismatch.
   ## When detected, call report_balance_mismatch()
+  balance2 = sum([p.zoobars for p in pdb.query(zoobar.zoodb.Person).all()])
+  lastcount = pdb.query(zoobar.zoodb.Person).count()
+  if (balance2 != balance1) and (lastcount == 2):
+        report_balance_mismatch()
 
   ## Detect zoobar theft.
   ## When detected, call report_zoobar_theft()
+  for p in pdb.query(zoobar.zoodb.Person).all():
+      if p.zoobars != 10:
+          report_zoobar_theft()
 
 fuzzy.concolic_test(test_stuff, maxiter=2000, verbose=1)
 

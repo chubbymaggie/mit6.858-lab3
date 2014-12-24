@@ -175,9 +175,17 @@ class sym_lt(sym_binop):
   def _z3expr(self, printable):
     return z3expr(self.a, printable) < z3expr(self.b, printable)
 
+class sym_le(sym_binop):
+  def _z3expr(self, printable):
+    return z3expr(self.a, printable) <= z3expr(self.b, printable)
+
 class sym_gt(sym_binop):
   def _z3expr(self, printable):
     return z3expr(self.a, printable) > z3expr(self.b, printable)
+
+class sym_ge(sym_binop):
+  def _z3expr(self, printable):
+    return z3expr(self.a, printable) >= z3expr(self.b, printable)
 
 class sym_plus(sym_binop):
   def _z3expr(self, printable):
@@ -189,6 +197,14 @@ class sym_minus(sym_binop):
 
 ## Exercise 2: your code here.
 ## Implement AST nodes for division and multiplication.
+
+class sym_div(sym_binop):
+    def _z3expr(self, printable):
+        return z3expr(self.a, printable) / z3expr(self.b, printable)
+
+class sym_mul(sym_binop):
+    def _z3expr(self, printable):
+        return z3expr(self.a, printable) * z3expr(self.b, printable)
 
 ## String operations
 
@@ -457,13 +473,64 @@ class concolic_int(int):
   def __ne__(self, o):
     return not self.__eq__(o)
 
-  def __cmp__(self, o):
-    res = long(self.__v).__cmp__(long(o))
-    if concolic_bool(sym_lt(ast(self), ast(o)), res < 0):
-      return -1
-    if concolic_bool(sym_gt(ast(self), ast(o)), res > 0):
-      return 1
-    return 0
+  def __lt__(self, o):
+      if not isinstance(o, int):
+        return False
+
+      if isinstance(o, concolic_int):
+          res = (self.__v < o.__v)
+      else:
+          res = (self.__v < o)
+      
+      return concolic_bool(sym_lt(ast(self), ast(o)), res)
+    
+  def __le__(self, o):
+      if not isinstance(o, int):
+        return False
+
+      if isinstance(o, concolic_int):
+          res = (self.__v <= o.__v)
+      else:
+          res = (self.__v <= o)
+      
+      return concolic_bool(sym_le(ast(self), ast(o)), res)
+
+  def __gt__(self, o):
+      if not isinstance(o, int):
+        return False
+
+      if isinstance(o, concolic_int):
+          res = (self.__v > o.__v)
+      else:
+          res = (self.__v > o)
+      
+      return concolic_bool(sym_gt(ast(self), ast(o)), res)
+
+  def __ge__(self, o):
+      if not isinstance(o, int):
+        return False
+
+      if isinstance(o, concolic_int):
+          res = (self.__v >= o.__v)
+      else:
+          res = (self.__v >= o)
+      
+      return concolic_bool(sym_ge(ast(self), ast(o)), res)
+
+  #def __cmp__(self, o):
+    #res = long(self.__v).__cmp__(long(o))
+    #if res == -1 or res == 0:
+        #concolic_bool(sym_le(ast(self), ast(o)), res == -1)
+    #if res == 1 or res == 0:
+        #concolic_bool(sym_ge(ast(self), ast(o)), res == 1)
+    ##if res == 0:
+        ##concolic_bool(sym_eq(ast(self), ast(o)), res == 0)
+    #return res
+    ##if concolic_bool(sym_lt(ast(self), ast(o)), res < 0):
+      ##return -1
+    ##if concolic_bool(sym_gt(ast(self), ast(o)), res > 0):
+      ##return 1
+    ##return 0
 
   def __add__(self, o):
     if isinstance(o, concolic_int):
@@ -482,6 +549,14 @@ class concolic_int(int):
 
   ## Exercise 2: your code here.
   ## Implement symbolic division and multiplication.
+
+  def __div__(self, o):
+      res = self.__v / o
+      return concolic_int(sym_div(ast(self), ast(o)), res)
+
+  def __mul__(self, o):
+      res = self.__v * o
+      return concolic_int(sym_mul(ast(self), ast(o)), res)
 
   def _sym_ast(self):
     return self.__sym
@@ -522,6 +597,13 @@ class concolic_str(str):
   ## Exercise 4: your code here.
   ## Implement symbolic versions of string length (override __len__)
   ## and contains (override __contains__).
+  def __len__(self):
+      res = self.__v.__len__()
+      return concolic_int(sym_length(ast(self)), res)
+
+  def __contains__(self, o):
+      res = self.__v.__contains__(o)
+      return concolic_bool(sym_contains(ast(self), ast(o)), res)
 
   def startswith(self, o):
     res = self.__v.startswith(o)
@@ -646,6 +728,10 @@ def mk_str(id):
     concrete_values[id] = ''
   return concolic_str(sym_str(id), concrete_values[id])
 
+class MyException(Exception):
+    def __init__(self, *args):
+        super(MyException, self).__init__(*args)
+
 def concolic_test(testfunc, maxiter = 100, verbose = 0):
   ## "checked" is the set of constraints we already sent to Z3 for
   ## checking.  use this to eliminate duplicate paths.
@@ -678,6 +764,42 @@ def concolic_test(testfunc, maxiter = 100, verbose = 0):
       for (c, caller) in zip(cur_path_constr, cur_path_constr_callers):
         print indent(z3expr(c, True)), '@', '%s:%d' % (caller[0], caller[1])
 
+    clen = len(cur_path_constr)
+    print "======================"
+    print "Round: ", iter, "len(Constraint): ", clen
+    #for i in range(clen, 0, -1):
+    #i = i - 1
+    #currentConstraint = sym_and(sym_not(cur_path_constr[-1]), *cur_path_constr[:-1])
+    #print "[x]: Constraint: ", currentConstraint
+
+    #if currentConstraint in checked:
+        #continue
+    #else:
+        #checked.add(currentConstraint)
+    
+    #(ok, model) = fork_and_check(currentConstraint)
+    #if ok != z3.sat:
+        ##raise MyException("ERROR: unsolvable constraint")
+        #continue
+    #inputs.add(model, cur_path_constr_callers[-1])
+
+    i = 0
+    for (path_constr, caller) in zip(cur_path_constr, cur_path_constr_callers):
+        i += 1
+        currentConstraint = sym_and(sym_not(path_constr), *cur_path_constr[:i-1])
+        print "[x]: Constraint: ", currentConstraint
+        if currentConstraint in checked:
+            continue
+        else:
+            checked.add(currentConstraint)
+        (ok, model) = fork_and_check(sym_and(sym_not(path_constr), *cur_path_constr[:i-1]))
+        print "ok:", ok, "model: ", model
+        #(ok, model) = fork_and_check(sym_not(path_constr))
+        if ok != z3.sat:
+            print "[x]: Constraint: ", path_constr
+            #raise MyException("ERROR: unsolvable constraint")
+            continue
+        inputs.add(model, caller)
     ## for each branch, invoke Z3 to find an input that would go
     ## the other way, and add it to the list of inputs to explore.
 

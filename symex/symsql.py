@@ -6,13 +6,18 @@ import sqlalchemy.orm
 
 oldget = sqlalchemy.orm.query.Query.get
 def newget(query, primary_key):
-  ## Exercise 5: your code here.
-  ##
-  ## Find the object with the primary key "primary_key" in SQLalchemy
-  ## query object "query", and do so in a symbolic-friendly way.
-  ##
-  ## Hint: given a SQLalchemy row object r, you can find the name of
-  ## its primary key using r.__table__.primary_key.columns.keys()[0]
-  return None
+    ## Exercise 5: your code here.
+    ##
+    ## Find the object with the primary key "primary_key" in SQLalchemy
+    ## query object "query", and do so in a symbolic-friendly way.
+    ##
+    ## Hint: given a SQLalchemy row object r, you can find the name of
+    ## its primary key using r.__table__.primary_key.columns.keys()[0]
+    allRecords = query.all()
+    for one in allRecords:
+        pname = one.__table__.primary_key.columns.keys()[0]
+        if primary_key == getattr(one, pname):
+            return one
+    return None
 
 sqlalchemy.orm.query.Query.get = newget

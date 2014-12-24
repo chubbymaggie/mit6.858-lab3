@@ -52,6 +52,8 @@ try:
     if y == 70:
         raise MyException("ERROR: wrong concrete value for concolic object, take 2")
     (ok, model) = fuzzy.fork_and_check(fuzzy.sym_not(fuzzy.cur_path_constr[0]))
+    print "====model==="
+    print model
     if ok != z3.sat:
         raise MyException("ERROR: unsolvable constraint")
     if model['x'] != 140:
